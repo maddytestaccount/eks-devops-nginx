@@ -46,7 +46,7 @@ phases:
     - echo "Update Kube Config"
     - aws eks update-kubeconfig --name $EKS_CLUSTER_NAME --role-arn $EKS_KUBECTL_ROLE_ARN
     # Debugging - Check Kubeconfig and AWS Environment Variables
-    - echo "Kubeconfig: $KUBECONFIG"
+    #- echo "Kubeconfig: $KUBECONFIG"
     - cat $KUBECONFIG
     - env | grep AWS
     # Apply changes to our Application using kubectl
