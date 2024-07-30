@@ -15,7 +15,7 @@ phases:
     - aws --version
     # Login to ECR Registry for docker to push the image to ECR Repository
     - echo "Login in to Amazon ECR..."
-    - $(aws ecr get-login --no-include-email)
+    - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $REPOSITORY_URI
     # Update Kube config Home Directory
     - export KUBECONFIG=$HOME/.kube/config
   build:
@@ -53,7 +53,8 @@ phases:
     #- echo "AWS_SECRET_ACCESS_KEY...  ${AWS_SECRET_ACCESS_KEY}"            
     #- echo "AWS_SESSION_TOKEN...  ${AWS_SESSION_TOKEN}"            
     #- echo "AWS_EXPIRATION...  $AWS_EXPIRATION"             
-    #- echo "EKS_CLUSTER_NAME...  $EKS_CLUSTER_NAME"             
+    #- echo "EKS_CLUSTER_NAME...  $EKS_CLUSTER_NAME"   
+
 artifacts:
   files:
   - build.json
