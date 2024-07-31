@@ -1,13 +1,11 @@
 version: 0.2
-
 phases:
   install:
     commands:
-    - echo "Install Phase - Using the latest Amazon Linux Docker Image for CodeBuild which has all AWS Tools"
-
+    - echo "Install Phase - Nothing to do using latest Amazon Linux Docker Image for CodeBuild which has all AWS Tools - https://github.com/aws/aws-codebuild-docker-images/blob/master/al2/x86_64/standard/3.0/Dockerfile"
   pre_build:
     commands:
-    # Docker Image Tag with Date Time & Code Build Resolved Source Version
+    # Docker Image Tag with Date Time & Code Buiild Resolved Source Version
     - TAG="$(date +%Y-%m-%d.%H.%M.%S).$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | head -c 8)"
     # Update Image tag in our Kubernetes Deployment Manifest        
     - echo "Update Image tag in kube-manifest..."
@@ -17,17 +15,15 @@ phases:
     - aws --version
     # Login to ECR Registry for docker to push the image to ECR Repository
     - echo "Login in to Amazon ECR..."
-    - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $REPOSITORY_URI
+    - aws ecr get-login-password | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
     # Update Kube config Home Directory
     - export KUBECONFIG=$HOME/.kube/config
-
   build:
     commands:
     # Build Docker Image
     - echo "Build started on `date`"
     - echo "Building the Docker image..."
     - docker build --tag $REPOSITORY_URI:$TAG .
-
   post_build:
     commands:
     # Push Docker Image to ECR Repository
@@ -44,14 +40,9 @@ phases:
     - export AWS_EXPIRATION=$(echo ${CREDENTIALS} | jq -r '.Credentials.Expiration')
     # Setup kubectl with our EKS Cluster              
     - echo "Update Kube Config"
-    - aws eks update-kubeconfig --name $EKS_CLUSTER_NAME --role-arn $EKS_KUBECTL_ROLE_ARN
-    # Debugging - Check Kubeconfig and AWS Environment Variables
-    #- echo "Kubeconfig: $KUBECONFIG"
-    - cat $KUBECONFIG
-    - env | grep AWS
+    - aws eks update-kubeconfig --name $EKS_CLUSTER_NAME
     # Apply changes to our Application using kubectl
     - echo "Apply changes to kube manifests"
-    - kubectl get nodes
     - kubectl apply -f kube-manifests/
     - echo "Completed applying changes to Kubernetes Objects"
     # Create Artifacts which we can use if we want to continue our pipeline for other stages
@@ -63,7 +54,6 @@ phases:
     #- echo "AWS_SESSION_TOKEN...  ${AWS_SESSION_TOKEN}"            
     #- echo "AWS_EXPIRATION...  $AWS_EXPIRATION"             
     #- echo "EKS_CLUSTER_NAME...  $EKS_CLUSTER_NAME"             
-
 artifacts:
   files:
   - build.json
