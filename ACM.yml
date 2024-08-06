@@ -1,0 +1,155 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Product creates ACM Certificate with DNS Validation Method ad also supports to add Alternative Domain Names.
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+    - Label:
+        default: Environment Details
+      Parameters:
+        - ACMName
+        - DomainName
+        - HostedZoneId
+        - AlternativeNames
+    - Label:
+        default: Tag 1
+      Parameters:
+        - Key1
+        - Value1
+    - Label:
+        default: Tag 2
+      Parameters:          
+        - Key2
+        - Value2
+    - Label:
+        default: Tag 3
+      Parameters:          
+        - Key3
+        - Value3
+    - Label:
+        default: Tag 4
+      Parameters:            
+        - Key4          
+        - Value4
+    - Label:
+        default: Tag 5
+      Parameters:            
+        - Key5
+        - Value5           
+    ParameterLabels:
+      ACMName: 
+        default: ACM Name
+      DomainName:
+        default: Domain Name
+      HostedZoneId:
+        default: Hosted Zone Id
+      AlternativeNames:
+        default: Alternative Names
+Parameters:
+  HostedZoneId:
+    Description: Default value was mentioned as not-applicable. However, Update Valid zone ID of above mentioned domain if SSL is needed to application with domain mapping. 
+    Type: AWS::Route53::HostedZone::Id
+  DomainName:
+    Description: Default value was mentioned as not-applicable. However, Update Valid Domain name if SSL is needed to application with domain mapping. 
+    Type: String
+#    Default: NA 
+  ACMName:
+    Description: Enter the name for your ACM to Identify in AWS Console.
+    Type: String
+#  AlternativeNames:
+#    Type: CommaDelimitedList
+#    Description: Enter the Fully Qualified Domain Name (FQDN) saperating by comma(eg:www.example.com,dev.example.com,*.example.com,prod.example.com)
+  Key1:
+    Description: Give Key for Tag1, leave empty if you do not want tag
+    Type: String
+  Value1:
+    Description: Give Value for Tag1, leave empty if you do not want tag
+    Type: String
+  Key2:
+    Description: Give Key for Tag2, leave empty if you do not want tag
+    Type: String
+  Value2:
+    Description: Give Value for Tag2, leave empty if you do not want tag
+    Type: String
+  Key3:
+    Description: Give Key for Tag3, leave empty if you do not want tag
+    Type: String
+  Value3:
+    Description: Give Value for Tag3, leave empty if you do not want tag
+    Type: String
+  Key4:
+    Description: Give Key for Tag4, leave empty if you do not want tag
+    Type: String
+  Value4:
+    Description: Give Value for Tag4, leave empty if you do not want tag
+    Type: String
+  Key5:
+    Description: Give Key for Tag5, leave empty if you do not want tag
+    Type: String
+  Value5:
+    Description: Give Value for Tag5, leave empty if you do not want tag
+    Type: String
+Conditions:
+  tag1: !Equals [!Ref Key1, '']
+  tag2: !Equals [!Ref Key2, '']
+  tag3: !Equals [!Ref Key3, '']
+  tag4: !Equals [!Ref Key4, '']
+  tag5: !Equals [!Ref Key5, '']
+Resources:
+  mycert:
+    Type: AWS::CertificateManager::Certificate
+    Properties: 
+    #    CertificateAuthorityArn: String
+        CertificateTransparencyLoggingPreference: ENABLED
+        DomainName: !Ref DomainName
+        DomainValidationOptions: 
+            -   DomainName: !Ref DomainName
+                HostedZoneId: !Ref HostedZoneId
+        SubjectAlternativeNames: 
+          - !Sub "${DomainName}"
+          - !Sub "*.${DomainName}"
+        Tags: 
+            - Key: Name
+              Value: !Ref ACMName
+            - 
+              !If 
+              - tag1
+              - !Ref AWS::NoValue
+              - 
+                Key: !Ref Key1
+                Value: !Ref Value1
+            -
+              !If 
+              - tag2
+              - !Ref AWS::NoValue
+              - 
+                Key: !Ref Key2
+                Value: !Ref Value2   
+            - 
+              !If 
+              - tag3
+              - !Ref AWS::NoValue
+              - 
+                Key: !Ref Key3
+                Value: !Ref Value3
+            -
+              !If 
+              - tag4
+              - !Ref AWS::NoValue
+              - 
+                Key: !Ref Key4
+                Value: !Ref Value4
+            -  
+              !If 
+              - tag5
+              - !Ref AWS::NoValue
+              - 
+                Key: !Ref Key5
+                Value: !Ref Value5              
+        ValidationMethod: DNS
+Outputs:
+  ACMCertificateArn:
+    Description: ACM Arn 
+    Value: !Ref mycert
+    Export:
+      Name: !Join [ "", [ ACM-ARN-of- , !Select [0, !Split [".", !Ref DomainName ]]  , !Select [1, !Split [".", !Ref DomainName ]] ] ]
