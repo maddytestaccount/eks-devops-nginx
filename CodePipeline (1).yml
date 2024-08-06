@@ -1,0 +1,1964 @@
+AWSTemplateFormatVersion: 2010-09-09 
+Description: 
+    This template creates a pipeline with either new commit, new build, new deployemnt application, new deployemnt group or with existing commit, existing build, existing deployemnt application, existing deployemnt group and also using GitHub or BitBucket.
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+    - Label:
+        default: Environment Details.
+      Parameters:
+      - CustomerName
+      - ExportTag      
+      - Email
+      - LogGroupName
+      - LogsRetentionInDays
+    - Label:
+        default: If we want to create new code commit repo provide name here or else leave blank.
+      Parameters:
+      - NewRepo
+    - Label:
+        default: Details to create new CodeStar connection for source.
+      Parameters:
+      - CreateNewConnection
+      - ProviderType
+      - HostArn
+      - BranchName
+      - RepositoryId    
+    - Label:
+        default: GitHub Details (Source).
+      Parameters:
+      - GitHubUrl
+      - GitHubRepo
+      - GitHubOwner
+      - OAuthToken
+    - Label:
+        default: BitBucket Details (Source).
+      Parameters:
+      - BitBucketConnectionARN
+      - BitBucketUrl
+      - BitBucketRepo  
+    - Label:
+        default: Details of either new resources or existing resources.
+      Parameters:
+      - DeployApplication
+      - Deploymentgroup
+      - Build
+      - Branch
+      - CreateNewRepo          
+    - Label:
+        default: Details of new build.
+      Parameters:
+      - EnvironmentType
+      - ComputeType
+      - Images
+      - NewBuild
+    - Label:
+        default: Details of new deploy.
+      Parameters:
+      - NewDeployApplication
+      - NewDeploymentGroup
+      - Targetgroup
+      - ComputePlatform      
+    - Label:
+        default: Details of either new resources or existing resources.
+      Parameters:
+      - ExistingDeployApplication
+      - ExistingRepo
+      - ExistingBuild
+      - ExistingDeploymentGroup
+    - Label:
+        default: Details if you want to deploy to S3
+      Parameters:
+      - DeployBucketName
+      - S3ObjectKey
+      - ExtractBeforeDeploy
+    - Label:
+        default: Details if you want to deploy to Elastic Beanstalk
+      Parameters:
+      - BeanstalkAppName
+      - BeanstalkEnvName        
+    - Label:
+        default: S3 Bucket details.
+      Parameters:
+      - S3BucketName 
+      - EnableAccessLogsBucketReplication       
+      - Objectlocking
+      - S3ServerlevelLogging      
+    - Label:
+        default: Tag 1
+      Parameters:
+        - Key1
+        - Value1
+    - Label:
+        default: Tag 2
+      Parameters:          
+        - Key2
+        - Value2
+    - Label:
+        default: Tag 3
+      Parameters:          
+        - Key3
+        - Value3
+    - Label:
+        default: Tag 4
+      Parameters:            
+        - Key4          
+        - Value4
+    - Label:
+        default: Tag 5
+      Parameters:            
+        - Key5
+        - Value5          
+    ParameterLabels:
+      EnvironmentType:
+        default: Environment Type
+      ComputeType:
+        default: Compute Type
+      Images:
+        default: Images
+      NewBuild:
+        default: New Build
+      BitBucketConnectionARN:
+        default: BitBucket Connection ARN
+      BitBucketUrl:
+        default: BitBucket URL
+      BitBucketRepo:
+        default: BitBucket Repo
+      GitHubUrl:
+        default: GitHub URL
+      GitHubRepo:
+        default: GitHub Repo
+      GitHubOwner:
+        default: GitHub Owner
+      OAuthToken:
+        default: OAuth Token
+      Email:
+        default: Email Address
+      CustomerName:
+        default: Customer Name
+      ExportTag:
+        default: Export Tag
+      LogsRetentionInDays:
+        default: Logs Retention period in days
+      LogGroupName:
+        default: Log Group Name
+      NewDeployApplication:
+        default: New Deployment Application name
+      NewDeploymentGroup:
+        default: New Deployment Group name
+      Targetgroup:
+        default: Target Group
+      ComputePlatform:
+        default: Compute Platform
+      DeployApplication:
+        default: Deploy Application
+      Deploymentgroup:
+        default: Deployment Group
+      Build:
+        default: Build Type
+      Branch:
+        default: Branch name
+      CreateNewRepo:
+        default: Create New Repo
+      ExistingDeployApplication:
+        default: Existing Deploy Application name
+      ExistingRepo:
+        default: Existing Repo name
+      ExistingBuild:
+        default: Existing Build name
+      ExistingDeploymentGroup:
+        default: Existing Deplyment Group
+      NewRepo:
+        default: New Repo name
+      Objectlocking:
+        default: Object locking
+      S3BucketName:
+        default: S3 Bucket Name
+      EnableAccessLogsBucketReplication:
+        default: Enable Access Logs Bucket Replication 
+      S3ServerlevelLogging:
+        default: S3 Server Level Logging 
+      DeployBucketName:
+        default: S3 Bucket Name to deploy
+      S3ObjectKey:
+        default: S3 Object Key
+      ExtractBeforeDeploy:
+        default: Extract Before Deploy
+      BeanstalkAppName:
+        default: Elastic Beanstalk Application Name
+      BeanstalkEnvName:
+        default: Elastic Beanstalk Environment Name
+      RepositoryId:
+        default: Repository Id
+      BranchName:
+        default: Branch Name
+      ProviderType:
+        default: Provider Type
+      HostArn:
+        default: Host Arn
+      CreateNewConnection:
+        default: Create New Connection
+Parameters:
+  Email:
+    Description: Email address to notify when new commits happen
+    Type: String 
+  CustomerName:
+    Description: Enter the name of the Customer
+    Type: String
+  ExportTag:
+    Description: Tags for the Exports 
+    Default: ''
+    Type: String  
+  EnvironmentType:
+    Description: If you want to with new build provide the type of build environment to use for related builds.
+    Type: String
+    Default: 'NA'
+    AllowedValues:
+    - NA
+    #- UsingExistingBuildValue
+#    - ARM_CONTAINER
+    - LINUX_CONTAINER
+    - LINUX_GPU_CONTAINER
+    - WINDOWS_CONTAINER   
+  ComputeType:
+    Description: If you want to with new build provide the type of compute environment. This determines the number of CPU cores and memory the build environment uses
+    Type: String
+    Default: 'NA'
+    AllowedValues:
+    - NA
+    - BUILD_GENERAL1_SMALL
+    - BUILD_GENERAL1_MEDIUM
+    - BUILD_GENERAL1_LARGE
+  Images:
+    Description: If you want to with new build provide the type of compute environment. This determines the number of CPU cores and memory the build environment uses
+    Type: String
+    Default: 'NA'
+    AllowedValues:
+    - NA
+#    - aws/codebuild/amazonlinux2-aarch64-standard:1.0
+    - aws/codebuild/amazonlinux2-x86_64-standard:1.0
+    - aws/codebuild/amazonlinux2-x86_64-standard:2.0
+    - aws/codebuild/amazonlinux2-x86_64-standard:3.0
+    - aws/codebuild/standard:1.0
+    - aws/codebuild/standard:2.0
+    - aws/codebuild/standard:3.0
+    - aws/codebuild/standard:4.0
+    - aws/codebuild/windows-base:1.0
+    - aws/codebuild/windows-base:2.0
+#  Deploy:
+#    Description: choose either new Deploy or existing Deploy.
+#    Type: 'String'
+#    AllowedValues:
+#      - NewDeploy
+#      - ExistingDeploy
+  DeployApplication:
+    Description: choose either New Application or ExistingApplication.
+    Type: String
+    AllowedValues:
+      - NewDeployApplication
+      - ExistingDeployApplication
+  Deploymentgroup:
+    Description: choose either new build or existing build.
+    Type: String
+    AllowedValues:
+      - NewDeploymentgroup   
+      - ExistingDeploymentgroup
+  Build:
+    Description: choose either new build or existing build.
+    Type: String
+    AllowedValues:
+      - NewBuild
+      - ExistingBuild
+  NewRepo:
+    Description: If we want new Repo provide the name or else leave blank.
+    Type: String
+  Branch:
+    Description:  Provide the branch name of the CodeCommit(New or Existing)  or GitHub or BitBucket. 
+    Type: String
+    Default: master
+  ExistingRepo:
+    Description: CodeCommit Repo Name
+    Type: String
+#   Default: image-classification-predict
+  NewBuild:
+    Description: If we want new Build provide the name
+    Type: String
+  ExistingBuild:
+    Description: CodeBuild Name
+    Type: String 
+#  Deploy:
+#    Description: If we want new Deploy provide the name
+#    Type: String
+  NewDeployApplication:
+    Description: If we want new DeployApplication provide the name
+    Type: String
+  ExistingDeployApplication:
+    Description: Existing Deploy Application Name
+    Type: String
+  NewDeploymentGroup:
+    Description: If we want new NewDeploymentgroup provide the name
+    Type: String
+  ExistingDeploymentGroup:
+    Description: Existing Deploymentgroup Name
+    Type: String
+  LogsRetentionInDays:
+    Description: it Specifies the number of days you want to retain log events in the specified log group.It can be 1, 3, 5, 7, 14, 30, 60, 90, 120, 150, 180, 365, 400, 545, 731, 1827, 3653.'
+    Type: 'String'
+  Targetgroup:
+    Description: If we are using new Deploy Applications and New Deployment group Specify the name of your target group.
+    Type: String
+  GitHubRepo:
+    Description: Provide the github repo
+    Type: String
+  BitBucketRepo:
+    Description: Provide the BitBucket repo in the format username/reponame.
+    Type: String 
+  ComputePlatform:
+    Description: If we want new Deploy Applications and New Deployment group select the appropriate ComputePlatform or else NA.
+    Type: String
+    Default: NA
+    AllowedValues:
+      - NA
+      - Lambda
+      - Server
+      - ServerwithLoadbalancer
+  S3BucketName:
+    Description: Provide the name for S3 bucket.
+    Type: String
+  S3ServerlevelLogging:
+    Description: "Select true to enable s3 bucket logging, else select false"
+    AllowedValues:
+    - 'true'
+    - 'false'
+    Default: 'false'
+    Type: String     
+  LogGroupName:
+    Description: Provide the name for Log Group.
+    Type: String  
+  CreateNewRepo:
+    Description: "Update whether to create new repo or not. Please leave as false if you wish to use Github or bitbucket"
+    AllowedValues:
+    - 'true'
+    - 'false'    
+    Default: 'false'
+    Type: String 
+  OAuthToken:
+    Description: If we are using GitHub Provide the Git Authentication token
+    Type: String
+  BitBucketConnectionARN:
+    Description: If we are using BitBucket Provide the Bit Bucket Connection ARN here. 
+    Type: String
+  Objectlocking:
+    Description: Select true to enable Object lock to objects in the S3 Bucket, else slect false. If you enabled Objeclock to S3 bucket by default Versioning will be enabled.
+    AllowedValues:
+    - 'true'
+    - 'false'
+    Default: 'false'
+    Type: String 
+  GitHubOwner:
+    Description: Provide the Github owner name which is a username
+    Type: String 
+  GitHubUrl:
+    Description: If you are going to use new build project with GitHub then provide the GitHub URL here orelse leave blank.
+    Type: String
+  BitBucketUrl:
+    Description: If you are going to use new build project with BitBucket then provide the BitBucket URL here orelse leave blank.
+    Type: String
+  #S3 Deployment
+  DeployBucketName:
+    Description: Provide the S3 bucket name to which you want to make the deployment, else leave empty.
+    Type: String
+  S3ObjectKey:
+    Description: Provide the Key name in the above bucket if you want to deploy under it, else leave blank.
+    Type: String
+  ExtractBeforeDeploy:
+    Description: Select true, if you want to extract the contents of the zip file from build output before deploying, else select false.
+    Type: String
+    AllowedValues:
+      - true
+      - false
+    Default: true
+  #Beanstalk Deployment
+  BeanstalkAppName:
+    Description: Provide the Elastic Beanstalk Application Name you want to make the deployment to, else leave empty.
+    Type: String
+  BeanstalkEnvName:
+    Description: Provide the Elastic Beanstalk Environment Name you want to make the deployment to, else leave empty.
+    Type: String 
+  #CodeStarConnection
+  CreateNewConnection:
+    Description: Select true if you want to create a new connection. Note, once the connection creates, you have to complete the pending connection by authorizing the AWS connector for the source provider.
+    Type: String
+    AllowedValues:
+      - true
+      - false
+    Default: false  
+  HostArn:
+    Description: Give the Amazon Resource Name (ARN) of the existing host associated with the connection, else leave it empty.
+    Type: String
+  ProviderType:
+    Description: Give a name for the external provider where your third-party code repository is configured.
+    Type: String
+    AllowedValues:
+      - Bitbucket
+      - GitHub
+      - GitHubEnterpriseServer
+    Default: GitHub
+  BranchName:
+    Description: Give the branch name in your Repo, eg. main
+    Type: String
+  RepositoryId:
+    Description: Give full Repository Id in username/reponame format.
+    Type: String
+  EnableAccessLogsBucketReplication:
+    Description: Select true if you want to enable replication for the Logging bucket.
+    Type: String
+    AllowedValues:
+      - true
+      - false
+    Default: false
+  #Tags      
+  Key1:
+    Description: Give Key for Tag1, leave empty if you do not want tag
+    Type: String
+  Value1:
+    Description: Give Value for Tag1, leave empty if you do not want tag
+    Type: String
+  Key2:
+    Description: Give Key for Tag2, leave empty if you do not want tag
+    Type: String
+  Value2:
+    Description: Give Value for Tag2, leave empty if you do not want tag
+    Type: String
+  Key3:
+    Description: Give Key for Tag3, leave empty if you do not want tag
+    Type: String
+  Value3:
+    Description: Give Value for Tag3, leave empty if you do not want tag
+    Type: String
+  Key4:
+    Description: Give Key for Tag4, leave empty if you do not want tag
+    Type: String
+  Value4:
+    Description: Give Value for Tag4, leave empty if you do not want tag
+    Type: String
+  Key5:
+    Description: Give Key for Tag5, leave empty if you do not want tag
+    Type: String
+  Value5:
+    Description: Give Value for Tag5, leave empty if you do not want tag    
+    Type: String 
+
+Conditions:
+  Objectlock: !Equals [true, !Ref Objectlocking ] 
+#  CreateRepo: !Equals [!Ref ExistingRepo, '' ]
+  CreateRepo: !Equals [true, !Ref CreateNewRepo ]
+  CreateBuild: !Equals [!Ref ExistingBuild, '' ]
+  CreateDeploymentGroup: !Equals [!Ref ExistingDeploymentGroup, '' ]
+  CreateDeployApplication: !Equals [!Ref ExistingDeployApplication, '' ]
+  Lambda: !Equals [!Ref ComputePlatform, 'Lambda' ]  
+  Server: !Equals [!Ref ComputePlatform, 'Server' ]
+  ServerwithLoadbalancer: !Equals [!Ref ComputePlatform, 'ServerwithLoadbalancer' ]
+  Codecommit: !And
+    - !Equals [!Ref GitHubRepo, ''] 
+    - !Equals [!Ref BitBucketRepo, '']
+    - !Equals [ !Ref CreateNewConnection, false ]  
+  GitHub: !Not [!Equals [!Ref GitHubRepo, ''] ]
+  BitBucket: !Not [!Equals [!Ref BitBucketRepo, ''] ]
+  BitB: !Not [!Equals [!Ref BitBucketUrl, ''] ]
+  Git: !Not [!Equals [!Ref GitHubUrl, '']] 
+  ProvidertypeGit: !Equals [!Ref ProviderType, GitHub ]
+  SourceTypeGit: !And
+    - Condition: Git
+    - Condition: ProvidertypeGit
+  ProvidertypeBitb: !Equals [ !Ref ProviderType, Bitbucket ]
+  SourceTypeBitB: !And
+    - Condition: BitB
+    - Condition: ProvidertypeBitb
+  #S3 Bucket API Logging
+  LoggingEnabled: !Equals [true, !Ref S3ServerlevelLogging]
+  
+  #S3 Deployment
+  S3: !Not [ !Equals [ !Ref DeployBucketName, '' ] ]
+  EmptyObjectKey: !Equals [ !Ref S3ObjectKey, '' ]
+  #Beanstalk Deployment
+  ElasticBeanstalk: !And
+    - Condition: AppNamenotEmpty
+    - Condition: EnvNamenotEmpty
+  AppNamenotEmpty: !Not [ !Equals [ !Ref BeanstalkAppName, '' ] ]
+  EnvNamenotEmpty: !Not [ !Equals [ !Ref BeanstalkEnvName, '' ] ]
+  #CodeStarConnection
+  EnableConnection: !Equals [ !Ref CreateNewConnection, true ]
+  DisableHostArn: !Equals [ !Ref HostArn, '' ]
+  #Tags
+  tag1: !Equals [!Ref Key1, '']
+  tag2: !Equals [!Ref Key2, '']
+  tag3: !Equals [!Ref Key3, '']
+  tag4: !Equals [!Ref Key4, '']
+  tag5: !Equals [!Ref Key5, '']   
+  AccessLogsReplica: !Equals [ !Ref EnableAccessLogsBucketReplication, true ]
+Resources:
+  S3Bucket: 
+    #DeletionPolicy: Retain
+#    DeletionPolicy: Delete
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref S3BucketName
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: 'true'
+        BlockPublicPolicy: 'true'
+        IgnorePublicAcls: 'true'
+        RestrictPublicBuckets: 'true'      
+      VersioningConfiguration: 
+        Status: Enabled
+      BucketEncryption:
+        ServerSideEncryptionConfiguration: 
+          -
+            ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      ObjectLockEnabled: !If
+        - Objectlock
+        - true
+        - false 
+      LifecycleConfiguration:
+        Rules:
+        - Id: GlacierRule
+          Prefix: glacier
+          Status: Enabled
+          ExpirationInDays: '60'
+          Transitions:
+            - TransitionInDays: '30'
+              StorageClass: GLACIER
+      LoggingConfiguration: !If
+        - LoggingEnabled
+        - DestinationBucketName: !Ref S3ServerAccessLoggingBucket
+          LogFilePrefix: CodePipelineLogBucketLogs
+        - !Ref 'AWS::NoValue'  
+      ReplicationConfiguration: 
+        !If
+          - AccessLogsReplica
+          - 
+            Role: !GetAtt LoggingBucketReplicationRole.Arn
+            Rules: 
+              - 
+                Destination: 
+                  Bucket: !GetAtt LoggingBucketReplica.Arn
+                  StorageClass: STANDARD
+                Id: codebuild-logging
+                Prefix: ''
+                Status: Enabled
+          - !Ref AWS::NoValue                    
+      Tags:
+        - Key: Name 
+          Value: !Sub Logs-${ProjectName}
+        - 
+          !If 
+          - tag1
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key1
+            Value: !Ref Value1
+        -
+          !If 
+          - tag2
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key2
+            Value: !Ref Value2   
+        - 
+          !If 
+          - tag3
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key3
+            Value: !Ref Value3
+        -
+          !If 
+          - tag4
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key4
+            Value: !Ref Value4
+        -  
+          !If 
+          - tag5
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key5
+            Value: !Ref Value5            
+      Tags:
+        - 
+          !If 
+          - tag1
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key1
+            Value: !Ref Value1
+        -
+          !If 
+          - tag2
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key2
+            Value: !Ref Value2   
+        - 
+          !If 
+          - tag3
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key3
+            Value: !Ref Value3
+        -
+          !If 
+          - tag4
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key4
+            Value: !Ref Value4
+        -  
+          !If 
+          - tag5
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key5
+            Value: !Ref Value5    
+## s3 bucket policy for ssl ##
+  s3BucketPolicy: 
+    Type: AWS::S3::BucketPolicy
+    Properties: 
+      Bucket: 
+        Ref: "S3Bucket"
+      PolicyDocument: 
+        Statement: 
+          - 
+            Sid: "AllowSSLRequestsOnly"
+            Action: "s3:*"
+            Effect: "Deny"
+            Principal: "*"
+            Resource: 
+              - Fn::Join: 
+                 - ""
+                 - 
+                   - !Sub "arn:${AWS::Partition}:s3:::"
+                   - 
+                     Ref: "S3Bucket"
+                   - "/*"
+              - Fn::Join: 
+                 - ""
+                 - 
+                   - !Sub "arn:${AWS::Partition}:s3:::"
+                   - 
+                     Ref: "S3Bucket"
+            Condition:
+              Bool:
+                aws:SecureTransport: 'false'  
+###################################################################               
+  LogGroup:
+    Type: 'AWS::Logs::LogGroup'
+    Properties:
+      LogGroupName: !Ref LogGroupName
+      RetentionInDays: !Ref LogsRetentionInDays
+################################################################
+#IAM Roles#
+#  CodePipelineArtifactStoreBucket:
+#    Type: 'AWS::S3::Bucket'
+  CodeBuildRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Action: ['sts:AssumeRole']
+          Effect: Allow
+          Principal:
+            Service: [codebuild.amazonaws.com]
+        Version: '2012-10-17'
+      Path: /
+      Tags:
+        - 
+          !If 
+          - tag1
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key1
+            Value: !Ref Value1
+        -
+          !If 
+          - tag2
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key2
+            Value: !Ref Value2   
+        - 
+          !If 
+          - tag3
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key3
+            Value: !Ref Value3
+        -
+          !If 
+          - tag4
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key4
+            Value: !Ref Value4
+        -  
+          !If 
+          - tag5
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key5
+            Value: !Ref Value5  
+  CodeBuildAccessmanagedPolicy:
+      Type: 'AWS::IAM::ManagedPolicy'
+      Properties:
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Resource: "*"
+            Action:
+            - logs:*
+          - Effect: Allow
+            Resource: "*"
+            Action:
+            - s3:*
+          - Effect: Allow
+            Resource: "*"
+            Action:
+            - codecommit:*
+          - Effect: Allow
+            Action:
+            - codebuild:*
+            Resource: "*"
+          - Effect: Allow
+            Action:
+            - codestar:*
+            Resource: "*"
+          - Effect: Allow
+            Action:
+            - codepipeline:*
+            Resource: "*"
+          - Effect: Allow
+            Action:
+            - codestar:*
+            Resource: "*"
+        ManagedPolicyName: CodeBuildAccessmanagedPolicy
+        Roles:
+          - !Ref CodeBuildRole
+##########################################################             
+  CodeDeployRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: /
+      RoleName: !Sub "${ExportTag}-codedeploy-${AWS::Region}"
+      AssumeRolePolicyDocument: 
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service: "codedeploy.amazonaws.com"
+            Action:
+              - "sts:AssumeRole" 
+          - Effect: Allow
+            Principal:
+              Service: "ecs-tasks.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      ManagedPolicyArns:
+        - !Sub "arn:${AWS::Partition}:iam::aws:policy/service-role/AWSCodeDeployRole"
+        - !Sub "arn:${AWS::Partition}:iam::aws:policy/AWSCodeStarFullAccess"
+        - !Sub "arn:${AWS::Partition}:iam::aws:policy/service-role/AWSCodeStarServiceRole" 
+      Tags:
+        - 
+          !If 
+          - tag1
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key1
+            Value: !Ref Value1
+        -
+          !If 
+          - tag2
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key2
+            Value: !Ref Value2   
+        - 
+          !If 
+          - tag3
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key3
+            Value: !Ref Value3
+        -
+          !If 
+          - tag4
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key4
+            Value: !Ref Value4
+        -  
+          !If 
+          - tag5
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key5
+            Value: !Ref Value5   
+  CodeDeployManagedPolicy:
+      Type: 'AWS::IAM::ManagedPolicy'
+      Properties:
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: "Allow"
+              Resource: "*"
+              Action:
+                - "autoscaling:*"
+                - "ec2:*"
+                - "tag:GetResources"
+                - "sns:*"
+                - "cloudwatch:*"
+                - "elasticloadbalancing:*"
+                - "ecs:*"
+                - "lambda:*"
+                - "cloudwatch:*"
+                - "s3:*"
+                - "codestar:*"
+                - "codestar-connections:*"
+                - codebuild:*
+                - codecommit:*
+                - codedeploy:*
+                - codepipeline:*
+        ManagedPolicyName: CodeDeployManagedPolicy
+        Roles:
+          - !Ref CodeDeployRole 
+######################################################################               
+  CodePipelineRole:
+    Type: AWS::IAM::Role
+    Properties: 
+      RoleName: !Sub "${ExportTag}-codepipeline-${AWS::Region}"
+      AssumeRolePolicyDocument: 
+        Statement:
+        - Action: ['sts:AssumeRole']
+          Effect: "Allow"
+          Principal:
+            Service: [codepipeline.amazonaws.com]
+        Version: '2012-10-17'
+      Path: /
+      Tags:
+        - 
+          !If 
+          - tag1
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key1
+            Value: !Ref Value1
+        -
+          !If 
+          - tag2
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key2
+            Value: !Ref Value2   
+        - 
+          !If 
+          - tag3
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key3
+            Value: !Ref Value3
+        -
+          !If 
+          - tag4
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key4
+            Value: !Ref Value4
+        -  
+          !If 
+          - tag5
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key5
+            Value: !Ref Value5  
+  CodePipelineManagedPolicy:
+      Type: 'AWS::IAM::ManagedPolicy'
+      Properties:
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Action:
+              - codepipeline:*
+              - cloudformation:*
+              - codebuild:*
+              - codecommit:*
+              - codedeploy:*
+              - codestar:*
+              - codestar-connections:*
+              - devicefarm:GetDevicePool
+              - devicefarm:GetProject
+              - devicefarm:ListDevicePools
+              - devicefarm:ListProjects
+              - ec2:*
+              - ecr:*
+              - ecs:*
+              - elasticbeanstalk:*
+              - iam:ListRoles
+              - iam:GetRole
+              - lambda:*
+              - events:*
+              - s3:*
+              - sns:*
+              Effect: Allow
+              Resource: "*"
+            - Action:
+              - s3:*
+              Effect: Allow
+              Resource: "*"
+            - Action:
+              - codestar:*
+              Effect: Allow
+              Resource: "*"
+            - Action:
+              - iam:PassRole
+              Effect: Allow
+              Resource:
+              - !Sub "arn:${AWS::Partition}:iam::*:role/service-role/cwe-role-*"
+              Condition:
+                StringEquals:
+                  iam:PassedToService:
+                  - events.amazonaws.com
+            - Action:
+              - codestar:*
+              Effect: Allow
+              Resource: 
+              - !Sub "arn:${AWS::Partition}:events:*:*:rule/awscodestar-*"
+              - !Sub "arn:${AWS::Partition}:events:*:*:rule/awscodestar-*"
+              - !Sub "arn:${AWS::Partition}:iam::aws:policy/service-role/AWSCodeStarServiceRole"                
+            - Action:
+              - iam:PassRole
+              Effect: Allow
+              Resource: "*"
+              Condition:
+                StringEquals:
+                  iam:PassedToService:
+                  - codepipeline.amazonaws.com
+            - Action:
+              - events:*
+              Effect: Allow
+              Resource:
+              - !Sub "arn:${AWS::Partition}:events:*:*:rule/codepipeline-*"
+        ManagedPolicyName: CodePipelineManagedPolicy
+        Roles:
+          - !Ref CodePipelineRole 
+###########################################################################
+  CodePipelineCloudFormationRole:
+    Type: AWS::IAM::Role
+    Properties: 
+      Path: /
+      RoleName: !Sub "${ExportTag}-cfn-${AWS::Region}"
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service: "cloudformation.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      Tags:
+        - 
+          !If 
+          - tag1
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key1
+            Value: !Ref Value1
+        -
+          !If 
+          - tag2
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key2
+            Value: !Ref Value2   
+        - 
+          !If 
+          - tag3
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key3
+            Value: !Ref Value3
+        -
+          !If 
+          - tag4
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key4
+            Value: !Ref Value4
+        -  
+          !If 
+          - tag5
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key5
+            Value: !Ref Value5 
+  CodePipelineCloudformationmanagedPolicy:
+      Type: 'AWS::IAM::ManagedPolicy'
+      Properties:
+        PolicyDocument:
+          Version: '2012-10-17'        
+          Statement:
+            - Effect: "Allow"
+              Resource: "*"
+              Action: "*"
+        ManagedPolicyName: CodePipelineCloudformationmanagedPolicy
+        Roles:
+          - !Ref CodePipelineCloudFormationRole
+#CodeCommit#
+  MyRepo:
+    Condition: CreateRepo
+    Type: AWS::CodeCommit::Repository
+    Properties:
+      RepositoryName: !Ref NewRepo
+      RepositoryDescription: CodeCommit Repository
+      Triggers:
+      - Name: mastertrigger
+        CustomData: Project ID 12345
+        DestinationArn:
+          Ref: pipelinesnstopic
+        Events:
+        - all
+      Tags:
+        - 
+          !If 
+          - tag1
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key1
+            Value: !Ref Value1
+        -
+          !If 
+          - tag2
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key2
+            Value: !Ref Value2   
+        - 
+          !If 
+          - tag3
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key3
+            Value: !Ref Value3
+        -
+          !If 
+          - tag4
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key4
+            Value: !Ref Value4
+        -  
+          !If 
+          - tag5
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key5
+            Value: !Ref Value5         
+#CodeBuild#
+  CodeBuildProject:
+    Type: AWS::CodeBuild::Project
+    Condition: CreateBuild
+    Properties: !If 
+      - Codecommit
+      - Artifacts:
+          EncryptionDisabled: true
+          Location: !Ref S3Bucket
+          Name: !Sub ${ExportTag}-${CustomerName}-codebuildproject
+          NamespaceType: NONE
+          Packaging: ZIP
+          Type: S3
+        Environment:
+          ComputeType: !Ref ComputeType
+          Image: !Ref Images
+          Type: !Ref EnvironmentType
+        Name: !Sub ${ExportTag}-${CustomerName}-${AWS::StackName}codebuildproject
+        ServiceRole: !GetAtt CodeBuildRole.Arn
+        Source:
+          Type: CODECOMMIT
+          Location: 
+            !If
+              - CreateRepo 
+              - !GetAtt MyRepo.CloneUrlHttp
+              - !Ref ExistingRepo
+        LogsConfig: 
+          S3Logs:
+            EncryptionDisabled: false
+            Location: !Ref S3Bucket
+            Status: 'ENABLED' 
+          CloudWatchLogs:
+            GroupName: !Ref LogGroup
+            Status: 'ENABLED'            
+      - Artifacts:
+          EncryptionDisabled: false
+          Location: !Ref S3Bucket
+          Name: codebuild
+          NamespaceType: NONE
+          Packaging: ZIP
+          Type: S3
+        Environment:
+          ComputeType: !Ref ComputeType
+          Image: !Ref Images
+          Type: !Ref EnvironmentType
+        Name: !Sub ${CustomerName}-${ExportTag}-buildproject
+        ServiceRole: !GetAtt CodeBuildRole.Arn
+        Source:
+          Auth:
+            Type: OAUTH
+          Type: 
+            !If
+              - SourceTypeGit
+              - "GITHUB"
+              - !If
+                  - SourceTypeBitB
+                  - "BITBUCKET"
+                  - "GITHUB_ENTERPRISE"
+          Location: 
+            !If
+              - Git
+              - !Ref GitHubUrl
+              - !If
+                  - EnableConnection
+                  - !Ref CodeStarConnection
+                  - !Ref BitBucketUrl
+        LogsConfig: 
+          S3Logs:
+            EncryptionDisabled: false
+            Location: !Ref S3Bucket
+            Status: 'ENABLED' 
+          CloudWatchLogs:
+            GroupName: !Ref LogGroup
+            Status: 'ENABLED' 
+        Tags:
+          - 
+            !If 
+            - tag1
+            - !Ref AWS::NoValue
+            - 
+              Key: !Ref Key1
+              Value: !Ref Value1
+          -
+            !If 
+            - tag2
+            - !Ref AWS::NoValue
+            - 
+              Key: !Ref Key2
+              Value: !Ref Value2   
+          - 
+            !If 
+            - tag3
+            - !Ref AWS::NoValue
+            - 
+              Key: !Ref Key3
+              Value: !Ref Value3
+          -
+            !If 
+            - tag4
+            - !Ref AWS::NoValue
+            - 
+              Key: !Ref Key4
+              Value: !Ref Value4
+          -  
+            !If 
+            - tag5
+            - !Ref AWS::NoValue
+            - 
+              Key: !Ref Key5
+              Value: !Ref Value5                
+#CodeDeploy#
+  #Code deploy application
+  CodeDeployApplicationServer:
+    Condition: Server
+    Type: "AWS::CodeDeploy::Application"
+    Properties:
+      ApplicationName: !Sub ${CustomerName}-${ExportTag}-serverapplication
+      ComputePlatform: Server
+      Tags:
+        - 
+          !If 
+          - tag1
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key1
+            Value: !Ref Value1
+        -
+          !If 
+          - tag2
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key2
+            Value: !Ref Value2   
+        - 
+          !If 
+          - tag3
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key3
+            Value: !Ref Value3
+        -
+          !If 
+          - tag4
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key4
+            Value: !Ref Value4
+        -  
+          !If 
+          - tag5
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key5
+            Value: !Ref Value5       
+  CodeDeployApplicationLoadbalancer:
+    Condition: ServerwithLoadbalancer
+    Type: "AWS::CodeDeploy::Application"
+    Properties:
+      ApplicationName: !Sub ${CustomerName}-${ExportTag}-loadbalancerapplication
+      ComputePlatform: Server
+      Tags:
+        - 
+          !If 
+          - tag1
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key1
+            Value: !Ref Value1
+        -
+          !If 
+          - tag2
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key2
+            Value: !Ref Value2   
+        - 
+          !If 
+          - tag3
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key3
+            Value: !Ref Value3
+        -
+          !If 
+          - tag4
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key4
+            Value: !Ref Value4
+        -  
+          !If 
+          - tag5
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key5
+            Value: !Ref Value5       
+  CodeDeployApplicationLambda:
+    Condition: Lambda
+    Type: "AWS::CodeDeploy::Application"
+    Properties:
+      ApplicationName: !Sub ${CustomerName}-${ExportTag}-lambdaapplication
+      ComputePlatform: Lambda
+      Tags:
+        - 
+          !If 
+          - tag1
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key1
+            Value: !Ref Value1
+        -
+          !If 
+          - tag2
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key2
+            Value: !Ref Value2   
+        - 
+          !If 
+          - tag3
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key3
+            Value: !Ref Value3
+        -
+          !If 
+          - tag4
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key4
+            Value: !Ref Value4
+        -  
+          !If 
+          - tag5
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key5
+            Value: !Ref Value5       
+  #code deployment config      
+  DeploymentConfig:
+    Condition: CreateDeployApplication
+    Type: AWS::CodeDeploy::DeploymentConfig
+    Properties: 
+      MinimumHealthyHosts: 
+        Type: "HOST_COUNT"
+        Value: '1'
+#codedeploy deployment group for EC2
+  DeploymentGroupforServer:
+    Condition: Server 
+    Type: "AWS::CodeDeploy::DeploymentGroup"
+    Properties:
+      ApplicationName: !Ref CodeDeployApplicationServer #required
+      DeploymentConfigName: !Ref DeploymentConfig
+      DeploymentGroupName: !Sub ${CustomerName}-${ExportTag}-serverdeploymentgroup      
+      Ec2TagFilters: 
+        - 
+          Key: ExportTag
+          Value:  
+            Ref: ExportTag
+          Type: "KEY_AND_VALUE" 
+      ServiceRoleArn: !GetAtt  CodeDeployRole.Arn #required
+#deployment group for Load balanced server
+  DeploymentGroupLoadbalancer:
+    Condition: ServerwithLoadbalancer
+    Type: "AWS::CodeDeploy::DeploymentGroup"
+    Properties:
+      ApplicationName: !Ref CodeDeployApplicationLoadbalancer #required
+      LoadBalancerInfo:
+        TargetGroupInfoList: 
+          - Name: !Ref Targetgroup
+      DeploymentGroupName: !Sub ${CustomerName}-${ExportTag}-deploymentgroupsloadbalanced
+      DeploymentConfigName: !Ref DeploymentConfig
+      DeploymentStyle: 
+        DeploymentOption: WITH_TRAFFIC_CONTROL 
+      Ec2TagFilters: 
+        - 
+          Key: ExportTag
+          Value: 
+            Ref: ExportTag
+          Type: "KEY_AND_VALUE" 
+      ServiceRoleArn: !GetAtt CodeDeployRole.Arn
+#Deployment group fpr Lamdba
+  DeploymentGroupLambda:
+    Condition: Lambda 
+    Type: "AWS::CodeDeploy::DeploymentGroup"
+    Properties:
+      ApplicationName: !Ref CodeDeployApplicationLambda #required
+      DeploymentGroupName: !Sub ${CustomerName}-${ExportTag}-lambdadeploymentgroup
+      DeploymentStyle:
+        DeploymentOption: WITH_TRAFFIC_CONTROL
+        DeploymentType: BLUE_GREEN
+      ServiceRoleArn: !GetAtt  CodeDeployRole.Arn
+#CodePipeline#
+  CodePipeline:
+    Type: AWS::CodePipeline::Pipeline
+    Properties:
+      Name: !Sub ${CustomerName}-${ExportTag}-pipeline
+      RoleArn: !GetAtt CodePipelineRole.Arn
+      ArtifactStore: 
+        Type: S3
+        Location: !Ref S3Bucket
+      Stages:
+      - !If 
+        - GitHub
+        - Name: Source
+          Actions:
+            - Name: SourceAction
+              ActionTypeId:
+                Category: Source
+                Owner: ThirdParty
+                Version: 1
+                Provider: "GitHub"
+              OutputArtifacts:
+                -
+                  Name: "Source"
+              Configuration:
+                Owner: !Ref GitHubOwner
+                Branch: !Ref Branch
+                Repo: !Ref GitHubRepo
+                PollForSourceChanges: 'false'
+                OAuthToken: !Ref OAuthToken
+              RunOrder: 1
+        - !If 
+          - BitBucket
+          - Name: Source
+            Actions:
+              - Name: SourceAction
+                ActionTypeId:
+                  Category: "Source"
+                  Owner: AWS
+                  Version: 1
+                  Provider: CodeStarSourceConnection
+                OutputArtifacts:
+                  - Name: "Source"
+                Configuration: 
+                  ConnectionArn: !Ref BitBucketConnectionARN
+                  BranchName: !Ref Branch
+                  FullRepositoryId: !Ref BitBucketRepo
+                  OutputArtifactFormat: "CODE_ZIP"
+                RunOrder: 1  
+                Name: SourceAction
+          - !If
+            - EnableConnection
+            - Name: Source
+              Actions:
+                - Name: SourceAction
+                  ActionTypeId:
+                    Category: "Source"
+                    Owner: AWS
+                    Version: 1
+                    Provider: CodeStarSourceConnection
+                  OutputArtifacts:
+                    - Name: "Source"
+                  Configuration:
+                    ConnectionArn: !Ref CodeStarConnection
+                    BranchName: !Ref BranchName
+                    FullRepositoryId: !Ref RepositoryId
+                    OutputArtifactFormat: "CODE_ZIP"
+                  RunOrder: 1
+                  Name: SourceAction
+            - Name: Source
+              Actions:
+                - Name: SourceAction
+                  ActionTypeId:
+                    Category: Source
+                    Owner: AWS
+                    Version: 1
+                    Provider: CodeCommit
+                  OutputArtifacts:
+                    - Name: "Source"
+                  Configuration:
+                    BranchName: master
+                    RepositoryName: !If [ CreateRepo, !Select [5, !Split [":", !GetAtt MyRepo.Arn ]] , !Ref ExistingRepo ]
+                  RunOrder: 1        
+      -
+        Name: Build
+        Actions:
+          -
+            Name: CodeBuild
+            InputArtifacts:
+              -
+                Name: "Source"
+            ActionTypeId:
+              Category: Build
+              Owner: AWS
+              Version: 1
+              Provider: CodeBuild
+            OutputArtifacts:
+              -
+                Name: "Built"
+            Configuration:
+              ProjectName: !If [ CreateBuild, !GetAtt CodeBuildProject.Arn, !Ref ExistingBuild ]
+            RunOrder: 1
+      - !If
+        - Lambda
+        - Name: Deploy
+          Actions:
+            - Name: DeployApp
+              InputArtifacts:
+                - Name: "Built"
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Version: 1
+                Provider: CodeDeploy
+              Configuration: 
+                ApplicationName: !If [ CreateDeployApplication, !Ref CodeDeployApplicationLambda , !Ref ExistingDeployApplication ]
+                DeploymentGroupName: !If
+                  - CreateDeploymentGroup
+                  - !Ref DeploymentGroupLambda
+                  - !Ref ExistingDeploymentGroup
+              RunOrder: 1
+        - !If 
+          - Server
+          - Name: Deploy
+            Actions:
+              - Name: DeployApp
+                InputArtifacts:
+                  - Name: "Built"
+                ActionTypeId:
+                  Category: Deploy
+                  Owner: AWS
+                  Version: 1
+                  Provider: CodeDeploy
+                Configuration: 
+                  ApplicationName: !If [ CreateDeployApplication, !Ref CodeDeployApplicationServer , !Ref ExistingDeployApplication ]
+                  DeploymentGroupName: !If
+                    - CreateDeploymentGroup
+                    - !Ref DeploymentGroupforServer
+                    - !Ref ExistingDeploymentGroup
+                RunOrder: 1
+          - !If
+            - S3
+            - Name: Deploy
+              Actions:
+                - Name: DeployApp
+                  InputArtifacts:
+                    - Name: "Built"
+                  ActionTypeId:
+                    Category: Deploy
+                    Owner: AWS
+                    Version: 1
+                    Provider: S3
+                  Configuration:
+                    BucketName: !Ref DeployBucketName
+                    ObjectKey:
+                      !If
+                        - EmptyObjectKey
+                        - !Ref AWS::NoValue
+                        - !Ref S3ObjectKey
+                    Extract: !Ref ExtractBeforeDeploy
+                  RunOrder: 1
+            - !If
+              - ElasticBeanstalk
+              - Name: Deploy
+                Actions:
+                  - Name: DeployApp
+                    InputArtifacts:
+                      - Name: "Built"
+                    ActionTypeId:
+                      Category: Deploy
+                      Owner: AWS
+                      Version: 1
+                      Provider: ElasticBeanstalk
+                    Configuration:
+                      ApplicationName: !Ref BeanstalkAppName
+                      EnvironmentName: !Ref BeanstalkEnvName
+                    RunOrder: 1                
+              - Name: Deploy
+                Actions:
+                  - Name: DeployApp
+                    InputArtifacts:
+                      - Name: "Built"
+                    ActionTypeId:
+                      Category: Deploy
+                      Owner: AWS
+                      Version: 1
+                      Provider: CodeDeploy
+                    Configuration: 
+                      ApplicationName: !If [ CreateDeployApplication, !Ref CodeDeployApplicationLoadbalancer , !Ref ExistingDeployApplication ]
+                      DeploymentGroupName: !If
+                        - CreateDeploymentGroup
+                        - !Ref DeploymentGroupLoadbalancer
+                        - !Ref ExistingDeploymentGroup                   
+                        #  - !If
+                        #    - Server
+                        #    - !Ref DeploymentGroupforServer
+                        #    - !Ref DeploymentgroupServerLoadbalanced
+                        #- !Ref ExistingDeploymentgroup
+                    RunOrder: 1
+      Tags:
+        - 
+          !If 
+          - tag1
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key1
+            Value: !Ref Value1
+        -
+          !If 
+          - tag2
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key2
+            Value: !Ref Value2   
+        - 
+          !If 
+          - tag3
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key3
+            Value: !Ref Value3
+        -
+          !If 
+          - tag4
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key4
+            Value: !Ref Value4
+        -  
+          !If 
+          - tag5
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key5
+            Value: !Ref Value5                 
+#Notification#
+  EventRule: 
+    Type: "AWS::Events::Rule"
+    Properties:
+      Description: "EventRule"
+      EventPattern: 
+        source:
+          - aws.codepipeline
+#        detail-type:
+#          - CodePipeline Pipeline Execution State Change
+#        detail:
+#         build-status:
+#            - FAILED
+#            - SUCCEEDED
+#            - STOPPED
+      State: "ENABLED"
+      Targets: 
+        - 
+          Arn: 
+            Ref: "pipelinesnstopic"
+          Id: "PipelineNotificationTopic"
+#          InputTransformer:
+#            InputTemplate: '"The Pipeline <pipeline> has failed. Go to https://console.aws.amazon.com/codepipeline/home?region=us-east-1#/view/<pipeline>" '
+#            InputPathsMap:
+#              pipeline: "$.detail.pipeline" 
+  pipelinesnstopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      Subscription:
+      - Endpoint:
+          Ref: Email
+        Protocol: email
+      Tags:
+        - 
+          !If 
+          - tag1
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key1
+            Value: !Ref Value1
+        -
+          !If 
+          - tag2
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key2
+            Value: !Ref Value2   
+        - 
+          !If 
+          - tag3
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key3
+            Value: !Ref Value3
+        -
+          !If 
+          - tag4
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key4
+            Value: !Ref Value4
+        -  
+          !If 
+          - tag5
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key5
+            Value: !Ref Value5         
+  pipelinesnstopicpolicy:
+    Type: 'AWS::SNS::TopicPolicy'
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Sid: __default_statement_ID
+            Effect: Allow
+            Principal:
+              AWS: '*'
+            Action:
+              - 'SNS:GetTopicAttributes'
+              - 'SNS:SetTopicAttributes'
+              - 'SNS:AddPermission'
+              - 'SNS:RemovePermission'
+              - 'SNS:DeleteTopic'
+              - 'SNS:Subscribe'
+              - 'SNS:ListSubscriptionsByTopic'
+              - 'SNS:Publish'
+              - 'SNS:Receive'
+            Resource:
+              Ref: pipelinesnstopic
+            Condition:
+              StringEquals:
+                'AWS:SourceOwner':
+                  Ref: 'AWS::AccountId'
+          - Sid: TrustCWEToPublishEventsToMyTopic
+            Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: 'sns:Publish'
+            Resource:
+              Ref: pipelinesnstopic
+      Topics:
+        - Ref: pipelinesnstopic
+
+#S3 Bucket API Logging
+  S3ServerAccessLoggingBucket:
+    Condition: LoggingEnabled
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    Properties:
+      OwnershipControls:
+          Rules:
+            - ObjectOwnership: ObjectWriter
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: 'true'
+        BlockPublicPolicy: 'true'
+        IgnorePublicAcls: 'true'
+        RestrictPublicBuckets: 'true' 
+      VersioningConfiguration: 
+        Status: Enabled      
+      BucketName: !Sub "codepipeline-${S3BucketName}-s3-access-logging-bucket-${AWS::Region}"
+      LifecycleConfiguration:
+        Rules:
+        - Id: GlacierRule
+          Status: Enabled
+          ExpirationInDays: '60'
+          Transitions:
+            - TransitionInDays: '30'
+              StorageClass: GLACIER
+      Tags:
+        - 
+          !If 
+          - tag1
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key1
+            Value: !Ref Value1
+        -
+          !If 
+          - tag2
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key2
+            Value: !Ref Value2   
+        - 
+          !If 
+          - tag3
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key3
+            Value: !Ref Value3
+        -
+          !If 
+          - tag4
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key4
+            Value: !Ref Value4
+        -  
+          !If 
+          - tag5
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key5
+            Value: !Ref Value5 
+
+#CodeStarConnection
+  CodeStarConnection:
+    Condition: EnableConnection
+    Type: AWS::CodeStarConnections::Connection
+    Properties: 
+      ConnectionName: !Sub ${CustomerName}-CodePipeline-Connection
+      HostArn: 
+        !If
+          - DisableHostArn
+          - !Ref AWS::NoValue
+          - !Ref HostArn
+      ProviderType: 
+        !If
+          - DisableHostArn
+          - !Ref ProviderType
+          - !Ref AWS::NoValue
+      Tags: 
+        - 
+          !If 
+          - tag1
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key1
+            Value: !Ref Value1
+        -
+          !If 
+          - tag2
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key2
+            Value: !Ref Value2   
+        - 
+          !If 
+          - tag3
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key3
+            Value: !Ref Value3
+        -
+          !If 
+          - tag4
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key4
+            Value: !Ref Value4
+        -  
+          !If 
+          - tag5
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key5
+            Value: !Ref Value5
+# Logging bucket Replica configuration
+  LoggingBucketReplica:
+    Condition: AccessLogsReplica
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    Properties:
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: 'true'
+        BlockPublicPolicy: 'true'
+        IgnorePublicAcls: 'true'
+        RestrictPublicBuckets: 'true'       
+      BucketName: !Sub "${S3BucketName}-replication-bucket-${AWS::Region}"
+      LifecycleConfiguration:
+        Rules:
+        - Id: GlacierRule
+          Status: Enabled
+          ExpirationInDays: '60'
+          Transitions:
+            - TransitionInDays: '30'
+              StorageClass: GLACIER
+      VersioningConfiguration:
+        Status: Enabled                  
+      Tags:
+        - 
+          !If 
+          - tag1
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key1
+            Value: !Ref Value1
+        -
+          !If 
+          - tag2
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key2
+            Value: !Ref Value2   
+        - 
+          !If 
+          - tag3
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key3
+            Value: !Ref Value3
+        -
+          !If 
+          - tag4
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key4
+            Value: !Ref Value4
+        -  
+          !If 
+          - tag5
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key5
+            Value: !Ref Value5        
+#### Logging Bucket replicaton role ######   
+  LoggingBucketReplicationRole:
+    Condition: AccessLogsReplica
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Action:
+              - 'sts:AssumeRole'
+            Effect: Allow
+            Principal:
+              Service:
+                - s3.amazonaws.com
+      Tags:
+        - 
+          !If 
+          - tag1
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key1
+            Value: !Ref Value1        
+        -
+          !If 
+          - tag2
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key2
+            Value: !Ref Value2   
+        - 
+          !If 
+          - tag3
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key3
+            Value: !Ref Value3
+        -
+          !If 
+          - tag4
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key4
+            Value: !Ref Value4
+        -  
+          !If 
+          - tag5
+          - !Ref AWS::NoValue
+          - 
+            Key: !Ref Key5
+            Value: !Ref Value5                
+  LoggingBucketPolicy:
+    Condition: AccessLogsReplica
+    Type: 'AWS::IAM::ManagedPolicy'
+    Properties:
+      PolicyDocument:
+        Version: '2012-10-17'      
+        Statement:
+          - Action:
+              - 's3:GetReplicationConfiguration'
+              - 's3:ListBucket'
+            Effect: Allow
+            Resource:
+              - !Join
+                - ''
+                - - 'arn:aws:s3:::'
+                  - !Ref S3Bucket
+          - Action:
+              - 's3:GetObjectVersion'
+              - 's3:GetObjectVersionAcl'
+            Effect: Allow
+            Resource:
+              - !Join
+                - ''
+                - - 'arn:aws:s3:::'
+                  - !Ref S3Bucket
+                  - /*
+          - Action:
+              - 's3:ReplicateObject'
+              - 's3:ReplicateDelete'
+            Effect: Allow
+            Resource: 
+              - Fn::Join: 
+                 - ""
+                 - - !Sub "arn:${AWS::Partition}:s3:::"
+                   - !Sub "${S3BucketName}-logging-bucket-replication-${AWS::Region}"
+                   - "/*"            
+      ManagedPolicyName: LoggingBucketPolicy
+      Roles:
+        - !Ref LoggingBucketReplicationRole
+##############################################################
+Outputs:
+  PipeLineUrl:
+    Value: !Ref 'CodePipeline'
+  CodePipelineURL:
+    Description: "The URL to access the deployment pipeline"
+    Value: !Sub "https://${AWS::Region}.console.aws.amazon.com/codepipeline/home?region=${AWS::Region}#/view/${ExportTag}"
+  DeployServiceRoleArn:
+    Description: "The CodeDeploy service role used across all environments"
+    Value: !GetAtt CodeDeployRole.Arn
